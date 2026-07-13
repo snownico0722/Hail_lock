@@ -10,8 +10,10 @@ import android.service.quicksettings.TileService
 import androidx.annotation.RequiresApi
 import com.aistra.hail.HailApp.Companion.app
 import com.aistra.hail.R
+import com.aistra.hail.app.AppLock
 import com.aistra.hail.app.HailApi
 import com.aistra.hail.app.HailData
+import com.aistra.hail.ui.api.ApiActivity
 import com.aistra.hail.utils.HTarget
 
 @RequiresApi(Build.VERSION_CODES.N)
@@ -24,6 +26,14 @@ class QSTileService : TileService() {
     override fun onClick() {
         super.onClick()
         if (HailData.tileAction == HailData.AUTO_FREEZE_AFTER_LOCK) {
+            if (AppLock.isEnabled && HailData.autoFreezeAfterLock) {
+                startAndCollapse(
+                    Intent(this, ApiActivity::class.java)
+                        .setAction(HailApi.ACTION_TOGGLE_AUTO_FREEZE)
+                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                return
+            }
             HailData.autoFreezeAfterLock = !HailData.autoFreezeAfterLock
             app.setAutoFreezeService(context = this)
             updateTile()
@@ -38,6 +48,10 @@ class QSTileService : TileService() {
                 else -> HailApi.ACTION_UNFREEZE_ALL
             }
         ).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startAndCollapse(intent)
+    }
+
+    private fun startAndCollapse(intent: Intent) {
         if (HTarget.U) startActivityAndCollapse(
             PendingIntent.getActivity(
                 this, 0, intent, PendingIntent.FLAG_IMMUTABLE

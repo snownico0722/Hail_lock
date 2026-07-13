@@ -38,6 +38,9 @@ object HailApi {
     /** @since 0.6.0 */
     const val ACTION_LOCK_FREEZE = "${BuildConfig.APPLICATION_ID}.action.LOCK_FREEZE"
 
+    /** Internal action used by the password-protected quick settings tile. */
+    const val ACTION_TOGGLE_AUTO_FREEZE = "${BuildConfig.APPLICATION_ID}.action.TOGGLE_AUTO_FREEZE"
+
     fun getIntentForPackage(action: String, packageName: String) =
         Intent(action).putExtra(HailData.KEY_PACKAGE, packageName)
 
