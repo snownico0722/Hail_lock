@@ -44,8 +44,61 @@
    Active admin set to component {com.aistra.hail/com.aistra.hail.receiver.DeviceAdminReceiver}
    ```
 
-### 3. 卸载与移除设备所有者
-设置为设备所有者的应用无法直接卸载，如需卸载，请进入“雹”的设置中，点击“移除设备所有者”即可。
+### 3. 高级防护：禁止卸载目标冻结应用 (防绕过)
+为了防止在数字戒断期间，成瘾性应用被直接卸载并重新安装以绕过“雹”的锁定，您可以通过 ADB 开启系统级的“禁止卸载”限制。
+
+根据手机的 Android 系统版本，在终端中执行对应的命令（请将命令中的 `替换为包名` 替换为您想锁定的应用包名，例如 `com.tencent.tmgp.sgame`）：
+
+* **安卓 7.1.2**：
+  ```shell
+  adb shell service call package 145 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 8.0**：
+  ```shell
+  adb shell service call package 151 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 8.1**：
+  ```shell
+  adb shell service call package 152 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 9.0**：
+  ```shell
+  adb shell service call package 151 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 10**：
+  ```shell
+  adb shell service call package 156 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 11**：
+  ```shell
+  adb shell service call package 136 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 12**：
+  ```shell
+  adb shell service call package 136 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 13**：
+  ```shell
+  adb shell service call package 133 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 14**：
+  ```shell
+  adb shell service call package 134 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 15**：
+  ```shell
+  adb shell service call package 138 s16 替换为包名 i32 1 i32 0
+  ```
+* **安卓 16**：
+  ```shell
+  adb shell service call package 139 s16 替换为包名 i32 1 i32 0
+  ```
+
+> [!NOTE]
+> 开启此限制后，即使用户处于未冻结状态，也无法直接在系统桌面或设置中卸载该软件。若需解除禁止卸载限制，只需将命令末尾的最后一个 `i32 0` 更改为 `i32 1` 并重新执行即可（例如在 Android 14 上解除限制：`adb shell service call package 134 s16 包名 i32 1 i32 1`）。
+
+### 4. 卸载与移除设备所有者
+设置为设备所有者的应用（如“雹”本身）无法直接卸载。如需卸载，请进入“雹”的设置中，点击“移除设备所有者”即可。
 
 ---
 
