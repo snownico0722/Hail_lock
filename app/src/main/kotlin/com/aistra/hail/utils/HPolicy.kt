@@ -19,6 +19,9 @@ object HPolicy {
     val isProfileOwner get() = dpm.isProfileOwnerApp(app.packageName)
     val isAdminActive get() = dpm.isAdminActive(admin)
     val isDeviceOwnerActive get() = isDeviceOwner && isAdminActive
+    val isInstallBlocked: Boolean
+        get() = isDeviceOwnerActive &&
+                dpm.getUserRestrictions(admin).getBoolean(UserManager.DISALLOW_INSTALL_APPS)
 
     val lockScreen get() = isAdminActive.also { if (it) dpm.lockNow() }
 
@@ -60,6 +63,17 @@ object HPolicy {
         if (!isDeviceOwnerActive) return
         dpm.addUserRestriction(admin, UserManager.DISALLOW_ADD_USER)
         if (HTarget.P) dpm.addUserRestriction(admin, UserManager.DISALLOW_USER_SWITCH)
+    }
+
+    /**
+     * Block the user-wide package installation path. Android applies this policy
+     * to both new installs and package replacement/update installs.
+     */
+    fun setInstallBlocked(blocked: Boolean): Boolean {
+        if (!isDeviceOwnerActive) return false
+        if (blocked) dpm.addUserRestriction(admin, UserManager.DISALLOW_INSTALL_APPS)
+        else dpm.clearUserRestriction(admin, UserManager.DISALLOW_INSTALL_APPS)
+        return isInstallBlocked == blocked
     }
 
     fun setOrganizationName(name: String? = null) {
