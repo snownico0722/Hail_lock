@@ -82,6 +82,7 @@ class SettingsFragment : MainFragment(), MenuProvider {
     private fun SettingsScreen() {
         val autoFreezeAfterLock = rememberPreferenceState(HailData.AUTO_FREEZE_AFTER_LOCK, false)
         val pinEnabled = remember { mutableStateOf(AppLock.isEnabled) }
+        val installBlocked = remember { mutableStateOf(HPolicy.isInstallBlocked) }
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             listPreference(
                 key = HailData.WORKING_MODE,
@@ -111,6 +112,19 @@ class SettingsFragment : MainFragment(), MenuProvider {
                 },
                 icon = { Icon(imageVector = Icons.Outlined.Password, contentDescription = null) },
                 onClick = { manageAppPin(pinEnabled) }
+            )
+            switchPreference(
+                rememberState = { installBlocked },
+                onValueChange = { _, value ->
+                    if (HPolicy.setInstallBlocked(value)) true
+                    else {
+                        HUI.showToast(R.string.permission_denied)
+                        false
+                    }
+                },
+                titleId = R.string.block_app_install_updates,
+                enabled = HPolicy.isDeviceOwnerActive,
+                icon = Icons.Outlined.Lock
             )
             horizontalDivider()
             preferenceCategory(key = "customize", title = { Text(text = stringResource(R.string.title_customize)) })
