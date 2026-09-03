@@ -2,7 +2,6 @@ package com.aistra.hail.ui.main
 
 import android.os.Bundle
 import android.view.Menu
-import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
@@ -19,11 +18,9 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.aistra.hail.R
-import com.aistra.hail.app.AppLock
 import com.aistra.hail.app.HailData
 import com.aistra.hail.databinding.ActivityMainBinding
 import com.aistra.hail.extensions.*
-import com.aistra.hail.ui.lock.AppLockDialogs
 import com.aistra.hail.utils.HPolicy
 import com.aistra.hail.utils.HUI
 import com.google.android.material.appbar.AppBarLayout
@@ -33,22 +30,11 @@ import com.google.android.material.floatingactionbutton.ExtendedFloatingActionBu
 class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedListener {
     lateinit var fab: ExtendedFloatingActionButton
     lateinit var appbar: AppBarLayout
-    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        binding = initView()
-        if (AppLock.isEnabled) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-            binding.root.isVisible = false
-            AppLockDialogs.showUnlock(
-                activity = this,
-                onSuccess = { binding.root.isVisible = true },
-                onCancel = ::finishAndRemoveTask
-            )
-            return
-        }
+        val binding = initView()
         if (!HailData.biometricLogin || BiometricManager.from(this)
                 .canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL) != BiometricManager.BIOMETRIC_SUCCESS
         ) return
@@ -72,14 +58,6 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
             .setSubtitle(getString(R.string.msg_biometric)).setNegativeButtonText(getString(android.R.string.cancel))
             .build()
         biometricPrompt.authenticate(promptInfo)
-    }
-
-    override fun onStop() {
-        super.onStop()
-        if (AppLock.isEnabled && !isChangingConfigurations) {
-            binding.root.isVisible = false
-            finishAndRemoveTask()
-        }
     }
 
     private fun initView() = ActivityMainBinding.inflate(layoutInflater).apply {

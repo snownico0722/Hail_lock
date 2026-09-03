@@ -13,14 +13,12 @@ import com.aistra.hail.app.AppManager
 import com.aistra.hail.app.HailData
 import com.aistra.hail.services.AutoFreezeService
 import com.aistra.hail.utils.HDhizuku
-import com.aistra.hail.utils.HPolicy
 import com.aistra.hail.utils.HTarget
 
 class HailApp : Application() {
     override fun onCreate() {
         super.onCreate()
         app = this
-        HPolicy.enforceSingleUserMode()
         // DirtyDataUpdater.update(app)
         if (!HTarget.S) setAppTheme(HailData.appTheme)
         if (HailData.workingMode.startsWith(HailData.DHIZUKU)) HDhizuku.init()

@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
 }
 
@@ -22,8 +21,8 @@ android {
         applicationId = "com.aistra.hail"
         minSdk = 23
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.10.0"
+        versionCode = 35
+        versionName = "1.11.0"
     }
 
     buildTypes {
@@ -49,20 +48,6 @@ android {
             )
         }
     }
-    applicationVariants.configureEach {
-        outputs.configureEach {
-            (this as? com.android.build.gradle.internal.api.ApkVariantOutputImpl)?.outputFileName =
-                "Hail-v$versionName.apk"
-        }
-    }
-    java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(21)
-        }
-    }
-    kotlin {
-        jvmToolchain(21)
-    }
     androidResources {
         generateLocaleConfig = true
         // Do not compress the dex files, so the apk can be imported as a privileged app
@@ -77,6 +62,22 @@ android {
         includeInApk = false
         includeInBundle = false
     }
+}
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach {
+            if (it is com.android.build.api.variant.impl.VariantOutputImpl)
+                it.outputFileName = "Hail-v${it.versionName.get()}.apk"
+        }
+    }
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+kotlin {
+    jvmToolchain(21)
 }
 
 dependencies {
@@ -107,5 +108,5 @@ dependencies {
     implementation(libs.commons.text)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.hiddenapibypass)
-    compileOnly(libs.xposed)
+    compileOnly(libs.libxposed.api)
 }
