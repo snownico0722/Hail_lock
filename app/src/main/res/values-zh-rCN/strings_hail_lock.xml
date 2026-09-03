@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="block_app_install_updates">禁止安装和更新应用（全局）</string>
+</resources>
