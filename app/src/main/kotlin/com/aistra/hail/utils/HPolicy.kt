@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Intent
+import android.os.UserManager
 import androidx.core.content.getSystemService
 import com.aistra.hail.HailApp.Companion.app
 import com.aistra.hail.receiver.DeviceAdminReceiver
@@ -46,6 +47,19 @@ object HPolicy {
         if (isDeviceOwnerActive && HTarget.O && !dpm.isBackupServiceEnabled(admin)) dpm.setBackupServiceEnabled(
             admin, true
         )
+    }
+
+    /**
+     * Keep the device in its primary user by blocking creation and switching of
+     * secondary users. OEM "second space" features are commonly backed by this
+     * Android multi-user mechanism.
+     *
+     * Existing secondary-user data is deliberately not deleted.
+     */
+    fun enforceSingleUserMode() {
+        if (!isDeviceOwnerActive) return
+        dpm.addUserRestriction(admin, UserManager.DISALLOW_ADD_USER)
+        if (HTarget.P) dpm.addUserRestriction(admin, UserManager.DISALLOW_USER_SWITCH)
     }
 
     fun setOrganizationName(name: String? = null) {

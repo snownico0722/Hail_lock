@@ -11,5 +11,6 @@ class DeviceAdminReceiver : DeviceAdminReceiver() {
         super.onEnabled(context, intent)
         HPolicy.enableBackupService()
         HPolicy.setOrganizationName(context.getString(R.string.app_name))
+        HPolicy.enforceSingleUserMode()
     }
 }
