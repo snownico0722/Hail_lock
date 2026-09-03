@@ -21,8 +21,8 @@ android {
         applicationId = "com.aistra.hail"
         minSdk = 23
         targetSdk = 36
-        versionCode = 35
-        versionName = "1.11.0"
+        versionCode = 36
+        versionName = "1.11.0-lock.1"
     }
 
     buildTypes {
