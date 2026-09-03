@@ -13,7 +13,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: ${{ !startsWith(github.event.head_commit.message, '[skip ci]') && github.repository_owner == 'aistra0528' }}
+    if: ${{ !startsWith(github.event.head_commit.message, '[skip ci]') && github.repository_owner == 'snownico0722' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -24,12 +24,6 @@ jobs:
           java-version: '21'
       - name: Build with Gradle
         run: |
-          touch signing.properties
-          echo storeFile=../keystore.jks >> signing.properties
-          echo storePassword=${{ secrets.KEYSTORE_PASSWORD }} >> signing.properties
-          echo keyAlias=${{ secrets.KEYSTORE_ALIAS }} >> signing.properties
-          echo keyPassword=${{ secrets.KEYSTORE_ALIAS_PASSWORD }} >> signing.properties
-          echo ${{ secrets.KEYSTORE }} | base64 --decode > keystore.jks
           ./gradlew assembleRelease
           echo "filename=$(jq -r '.elements.[0].outputFile' app/build/outputs/apk/release/output-metadata.json)" >> $GITHUB_ENV
       - name: Upload a Build Artifact
