@@ -21,6 +21,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ComposeView
@@ -34,12 +36,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.aistra.hail.HailApp.Companion.app
 import com.aistra.hail.R
+import com.aistra.hail.app.AppLock
 import com.aistra.hail.app.AppManager
 import com.aistra.hail.app.HailApi
 import com.aistra.hail.app.HailData
 import com.aistra.hail.databinding.DialogInputBinding
 import com.aistra.hail.ui.main.MainActivity
 import com.aistra.hail.ui.main.MainFragment
+import com.aistra.hail.ui.lock.AppLockDialogs
 import com.aistra.hail.ui.theme.AppTheme
 import com.aistra.hail.utils.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -77,6 +81,7 @@ class SettingsFragment : MainFragment(), MenuProvider {
     @Composable
     private fun SettingsScreen() {
         val autoFreezeAfterLock = rememberPreferenceState(HailData.AUTO_FREEZE_AFTER_LOCK, false)
+        val pinEnabled = remember { mutableStateOf(AppLock.isEnabled) }
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             listPreference(
                 key = HailData.WORKING_MODE,
@@ -91,12 +96,21 @@ class SettingsFragment : MainFragment(), MenuProvider {
             switchPreference(
                 key = HailData.BIOMETRIC_LOGIN,
                 defaultValue = false,
-                onValueChange = { _, value ->
-                    if (value) resetDynamicShortcuts()
-                    true
-                },
                 titleId = R.string.action_biometric,
                 icon = Icons.Outlined.Fingerprint
+            )
+            preference(
+                key = "app_lock_pin",
+                title = { Text(text = stringResource(R.string.app_pin)) },
+                summary = {
+                    Text(
+                        text = stringResource(
+                            if (pinEnabled.value) R.string.app_pin_enabled else R.string.app_pin_disabled
+                        )
+                    )
+                },
+                icon = { Icon(imageVector = Icons.Outlined.Password, contentDescription = null) },
+                onClick = { manageAppPin(pinEnabled) }
             )
             horizontalDivider()
             preferenceCategory(key = "customize", title = { Text(text = stringResource(R.string.title_customize)) })
@@ -259,10 +273,38 @@ class SettingsFragment : MainFragment(), MenuProvider {
             preference(
                 key = "clear_dynamic_shortcuts",
                 title = { Text(text = stringResource(R.string.action_clear_dynamic_shortcuts)) },
-                icon = { Icon(imageVector = Icons.Outlined.CleaningServices, contentDescription = null) },
-                onClick = ::resetDynamicShortcuts
-            )
+                icon = { Icon(imageVector = Icons.Outlined.CleaningServices, contentDescription = null) }) {
+                HShortcuts.removeAllDynamicShortcuts()
+                HShortcuts.addDynamicShortcutAction(HailData.dynamicShortcutAction)
+            }
         }
+    }
+
+    private fun manageAppPin(pinEnabled: MutableState<Boolean>) {
+        if (!AppLock.isEnabled) {
+            AppLockDialogs.showCreate(requireActivity()) {
+                pinEnabled.value = true
+                HUI.showToast(R.string.msg_pin_updated)
+            }
+            return
+        }
+        MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.app_pin)
+            .setItems(arrayOf(getString(R.string.app_pin_change), getString(R.string.app_pin_remove))) { _, which ->
+                if (which == 0) {
+                    AppLockDialogs.showVerify(requireActivity(), R.string.app_pin_current) {
+                        AppLockDialogs.showCreate(requireActivity()) {
+                            pinEnabled.value = true
+                            HUI.showToast(R.string.msg_pin_updated)
+                        }
+                    }
+                } else {
+                    AppLockDialogs.showVerify(requireActivity(), R.string.app_pin_current) {
+                        AppLock.clearPin()
+                        pinEnabled.value = false
+                        HUI.showToast(R.string.msg_pin_removed)
+                    }
+                }
+            }.setNegativeButton(android.R.string.cancel, null).show()
     }
 
     private fun LazyListScope.horizontalDivider() = item { HorizontalDivider() }
@@ -343,11 +385,6 @@ class SettingsFragment : MainFragment(), MenuProvider {
 
     private fun String.toEntry(values: List<String>, @ArrayRes entriesId: Int): String =
         resources.getStringArray(entriesId)[values.indexOf(this)]
-
-    private fun resetDynamicShortcuts() {
-        HShortcuts.removeAllDynamicShortcuts()
-        HShortcuts.addDynamicShortcutAction(HailData.dynamicShortcutAction)
-    }
 
     private fun iconPackName(pack: String): String = if (pack == HailData.ACTION_NONE) getString(R.string.action_none)
     else HPackages.getApplicationInfoOrNull(pack)?.loadLabel(app.packageManager)?.toString() ?: pack

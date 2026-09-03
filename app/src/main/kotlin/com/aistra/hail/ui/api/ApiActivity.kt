@@ -27,19 +27,42 @@ import androidx.compose.ui.res.stringResource
 import com.aistra.hail.HailApp.Companion.app
 import com.aistra.hail.R
 import com.aistra.hail.app.AppInfo
+import com.aistra.hail.app.AppLock
 import com.aistra.hail.app.AppManager
 import com.aistra.hail.app.HailApi
 import com.aistra.hail.app.HailData
 import com.aistra.hail.ui.theme.AppTheme
-import com.aistra.hail.utils.*
+import com.aistra.hail.ui.lock.AppLockDialogs
+import com.aistra.hail.utils.HPackages
+import com.aistra.hail.utils.HShortcuts
+import com.aistra.hail.utils.HTarget
+import com.aistra.hail.utils.HUI
 import com.aistra.hail.work.HWork.setAutoFreeze
 
 class ApiActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (AppLock.isEnabled && requiresUnlock()) {
+            AppLockDialogs.showUnlock(this, ::executeAction, ::finish)
+        } else executeAction()
+    }
+
+    private fun executeAction() {
         runCatching {
             if (handleAction(intent.action)) finish()
         }.onFailure(::setErrorDialog)
+    }
+
+    private fun requiresUnlock(): Boolean = when (intent.action) {
+        Intent.ACTION_SHOW_APP_INFO,
+        HailApi.ACTION_LAUNCH,
+        HailApi.ACTION_UNFREEZE,
+        HailApi.ACTION_UNFREEZE_TAG,
+        HailApi.ACTION_UNFREEZE_ALL -> true
+
+        HailApi.ACTION_TOGGLE_AUTO_FREEZE -> HailData.autoFreezeAfterLock
+        Intent.ACTION_VIEW -> intent.data?.host in setOf("launch", "unfreeze", "unfreeze_tag", "unfreeze_all")
+        else -> false
     }
 
     private fun handleAction(action: String?): Boolean {
@@ -65,6 +88,10 @@ class ApiActivity : ComponentActivity() {
             HailApi.ACTION_UNFREEZE_ALL -> setListFrozen(false)
             HailApi.ACTION_FREEZE_NON_WHITELISTED -> setListFrozen(true, skipWhitelisted = true)
             HailApi.ACTION_FREEZE_AUTO -> setAutoFreeze(false)
+            HailApi.ACTION_TOGGLE_AUTO_FREEZE -> {
+                HailData.autoFreezeAfterLock = !HailData.autoFreezeAfterLock
+                app.setAutoFreezeService()
+            }
             HailApi.ACTION_LOCK -> lockScreen(false)
             HailApi.ACTION_LOCK_FREEZE -> lockScreen(true)
             else -> throw IllegalArgumentException("Unknown action:\n$action")
@@ -190,9 +217,6 @@ class ApiActivity : ComponentActivity() {
         if (tagId != null) setListFrozen(false, HailData.checkedList.filter { tagId in it.tagIdList })
         if (AppManager.isAppFrozen(pkg) && AppManager.setAppFrozen(pkg, false)) {
             app.setAutoFreezeService()
-        }
-        if (HailData.workingMode == HailData.MODE_ISLAND_HIDE) {
-            HIsland.ensureLaunchIntentExists(packageName)
         }
         packageManager.getLaunchIntentForPackage(pkg)?.let {
             HShortcuts.addDynamicShortcut(pkg)
