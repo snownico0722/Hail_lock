@@ -22,6 +22,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.aistra.hail.R
 import com.aistra.hail.app.AppLock
 import com.aistra.hail.app.HailData
+import com.aistra.hail.app.UsageLimitController
 import com.aistra.hail.app.UsageLimitData
 import com.aistra.hail.databinding.ActivityMainBinding
 import com.aistra.hail.extensions.*
@@ -132,7 +133,7 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
     fun ownerRemoveDialog() {
         MaterialAlertDialogBuilder(this).setTitle(R.string.title_remove_owner).setMessage(R.string.msg_remove_owner)
             .setPositiveButton(R.string.action_continue) { _, _ ->
-                HPolicy.setOrganizationName()
+                UsageLimitController.releaseAllEnforced()
                 HPolicy.removeDeviceOwner()
             }.setNegativeButton(android.R.string.cancel, null).show()
     }
