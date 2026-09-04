@@ -125,7 +125,8 @@ object UsageLimitTracker {
                     if (event.packageName == state.activePackage) closeActive(state, timestamp)
                 }
 
-                UsageEvents.Event.SCREEN_NON_INTERACTIVE -> closeActive(state, timestamp)
+                UsageEvents.Event.SCREEN_NON_INTERACTIVE,
+                UsageEvents.Event.DEVICE_SHUTDOWN -> closeActive(state, timestamp)
             }
         }
     }
