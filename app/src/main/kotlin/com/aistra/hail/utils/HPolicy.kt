@@ -93,6 +93,27 @@ object HPolicy {
         if (isDeviceOwnerActive && HTarget.O) dpm.setOrganizationName(admin, name)
     }
 
+    private fun clearForkOwnerPolicies() {
+        if (!isDeviceOwnerActive) return
+
+        // Explicitly unwind policies added by Hail_lock before dropping owner status.
+        // clearDeviceOwnerApp() only promises best-effort cleanup on modern Android.
+        runCatching { dpm.clearUserRestriction(admin, UserManager.DISALLOW_INSTALL_APPS) }
+        runCatching { dpm.clearUserRestriction(admin, UserManager.DISALLOW_ADD_USER) }
+        if (HTarget.P) {
+            runCatching { dpm.clearUserRestriction(admin, UserManager.DISALLOW_USER_SWITCH) }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            runCatching {
+                val packages = dpm.getUserControlDisabledPackages(admin).toMutableSet()
+                if (packages.remove(app.packageName)) {
+                    dpm.setUserControlDisabledPackages(admin, packages.toList())
+                }
+            }
+        }
+        if (HTarget.O) runCatching { dpm.setOrganizationName(admin, null) }
+    }
+
     fun removeActiveAdmin() {
         if (isAdminActive) dpm.removeActiveAdmin(admin)
     }
@@ -104,6 +125,8 @@ object HPolicy {
 
     @Suppress("DEPRECATION")
     fun removeDeviceOwner() {
-        if (isDeviceOwnerActive) dpm.clearDeviceOwnerApp(app.packageName)
+        if (!isDeviceOwnerActive) return
+        clearForkOwnerPolicies()
+        dpm.clearDeviceOwnerApp(app.packageName)
     }
 }
