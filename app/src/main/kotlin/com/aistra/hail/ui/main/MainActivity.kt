@@ -1,5 +1,6 @@
 package com.aistra.hail.ui.main
 
+import android.app.ActivityManager
 import android.os.Bundle
 import android.view.Menu
 import android.view.WindowManager
@@ -75,13 +76,26 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
         biometricPrompt.authenticate(promptInfo)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (UsageLimitData.backgroundHide) setTaskExcludedFromRecents(false)
+    }
+
     override fun onStop() {
         super.onStop()
         if (isChangingConfigurations) return
-        if (AppLock.isEnabled) binding.root.isVisible = false
-        if (AppLock.isEnabled || UsageLimitData.backgroundHide) {
+        if (AppLock.isEnabled) {
+            binding.root.isVisible = false
             finishAndRemoveTask()
+        } else if (UsageLimitData.backgroundHide) {
+            setTaskExcludedFromRecents(true)
         }
+    }
+
+    private fun setTaskExcludedFromRecents(excluded: Boolean) {
+        val manager = getSystemService(ActivityManager::class.java) ?: return
+        @Suppress("DEPRECATION")
+        manager.appTasks.firstOrNull { it.taskInfo.id == taskId }?.setExcludeFromRecents(excluded)
     }
 
     private fun initView() = ActivityMainBinding.inflate(layoutInflater).apply {
