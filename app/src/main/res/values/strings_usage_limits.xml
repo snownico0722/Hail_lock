@@ -3,6 +3,7 @@
     <string name="title_usage_limits">Usage limits</string>
     <string name="usage_limit_enable">Enable usage limits</string>
     <string name="usage_limit_enable_summary">Count foreground use and suspend apps when a daily limit is reached.</string>
+    <string name="usage_limit_android_version_required">Usage limits require Android 8.0 or newer.</string>
     <string name="usage_limit_owner_required">Device owner required</string>
     <string name="usage_limit_owner_required_summary">Automatic suspension requires Hail to be the device owner.</string>
     <string name="usage_limit_usage_access_required">Usage access required</string>
