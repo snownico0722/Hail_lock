@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_usage_limits">Usage limits</string>
+    <string name="usage_limit_enable">Enable usage limits</string>
+    <string name="usage_limit_enable_summary">Count foreground use and suspend apps when a daily limit is reached.</string>
+    <string name="usage_limit_owner_required">Device owner required</string>
+    <string name="usage_limit_owner_required_summary">Automatic suspension requires Hail to be the device owner.</string>
+    <string name="usage_limit_usage_access_required">Usage access required</string>
+    <string name="usage_limit_usage_access_summary">Grant usage access so Hail can measure foreground app time.</string>
+    <string name="usage_limit_grant_access">Grant access</string>
+    <string name="usage_limit_total">Daily total limit</string>
+    <string name="usage_limit_total_summary">The total limit is shared by all apps on this page. When it is exhausted, all listed apps are suspended. Individual app limits still apply independently.</string>
+    <string name="usage_limit_apps">Limited apps</string>
+    <string name="usage_limit_add_app">Add app</string>
+    <string name="usage_limit_remove_app">Remove app</string>
+    <string name="usage_limit_no_apps">No apps have been added yet.</string>
+    <string name="usage_limit_not_set">Not set</string>
+    <string name="usage_limit_minutes_progress">%1$d / %2$d min</string>
+    <string name="usage_limit_minutes_input">Enter the daily limit in minutes.</string>
+    <string name="usage_limit_minutes_input_zero">Enter the daily total limit in minutes. Use 0 to disable the total limit.</string>
+    <string name="usage_limit_minutes_invalid">Enter a valid number of minutes.</string>
+    <string name="usage_limit_warning_app">%1$s has %2$d min left today.</string>
+    <string name="usage_limit_warning_total">The shared daily limit has %1$d min left.</string>
+    <string name="usage_limit_reached_app">%1$s reached its daily limit and was suspended.</string>
+    <string name="usage_limit_reached_total">The shared daily limit was reached. Limited apps were suspended.</string>
+    <string name="usage_limit_background_hide">Hide when in background</string>
+    <string name="usage_limit_background_hide_summary">Remove Hail from Recents after leaving the app. Device-owner monitoring continues in the background.</string>
+</resources>
