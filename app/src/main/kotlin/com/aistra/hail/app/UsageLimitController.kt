@@ -76,10 +76,13 @@ object UsageLimitController {
         UsageLimitData.enforcedPackages().toList().forEach(::releaseOwnedPackage)
     }
 
-    fun removePackage(context: Context, packageName: String) {
+    fun removePackage(packageName: String) {
         UsageLimitData.removeAppLimit(packageName)
         UsageLimitTracker.invalidate()
-        reconcile(context)
+        // Removing an app from the limiter is an explicit request to stop limiter
+        // enforcement for that app immediately. Other packages are reconciled by the
+        // regular service tick.
+        releaseOwnedPackage(packageName)
     }
 
     private fun resetForNewDay(dayStartMs: Long) {
