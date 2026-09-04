@@ -16,6 +16,11 @@
         android:label="@string/title_apps" />
 
     <fragment
+        android:id="@+id/nav_usage_limits"
+        android:name="com.aistra.hail.ui.usage.UsageLimitsFragment"
+        android:label="@string/title_usage_limits" />
+
+    <fragment
         android:id="@+id/nav_settings"
         android:name="com.aistra.hail.ui.settings.SettingsFragment"
         android:label="@string/title_settings" />
