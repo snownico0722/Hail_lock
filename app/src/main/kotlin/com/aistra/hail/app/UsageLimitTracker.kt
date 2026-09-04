@@ -16,8 +16,11 @@ object UsageLimitTracker {
         val foregroundPackage: String?
     )
 
+    private const val PERSIST_INTERVAL_MS = 30_000L
+
     private val usageStatsManager by lazy { app.getSystemService<UsageStatsManager>()!! }
     private var state: UsageLimitData.TrackerState? = null
+    private var lastPersistMs = 0L
 
     @Synchronized
     fun snapshot(now: Long = System.currentTimeMillis()): Snapshot {
@@ -29,7 +32,7 @@ object UsageLimitTracker {
                 dayStartMs = dayStart,
                 lastProcessedMs = now,
                 packageSignature = signature
-            ).also(UsageLimitData::saveTrackerState)
+            ).also { persist(it, now, force = true) }
             return Snapshot(dayStart, emptyMap(), 0L, null)
         }
 
@@ -50,7 +53,7 @@ object UsageLimitTracker {
             if (!HSystem.isInteractive(app) && current.activePackage != null) {
                 closeActive(current, now)
             }
-            UsageLimitData.saveTrackerState(current)
+            persist(current, now)
         }
 
         val perApp = current.usageMs.toMutableMap()
@@ -72,6 +75,7 @@ object UsageLimitTracker {
     @Synchronized
     fun invalidate() {
         state = null
+        lastPersistMs = 0L
         UsageLimitData.clearTrackerState()
     }
 
@@ -91,7 +95,7 @@ object UsageLimitTracker {
         val historyStart = (dayStart - 24L * 60L * 60L * 1000L).coerceAtLeast(0L)
         processEvents(fresh, historyStart, now, trackedPackages)
         fresh.lastProcessedMs = now
-        UsageLimitData.saveTrackerState(fresh)
+        persist(fresh, now, force = true)
         return fresh
     }
 
@@ -134,6 +138,12 @@ object UsageLimitTracker {
         }
         state.activePackage = null
         state.activeSinceMs = 0L
+    }
+
+    private fun persist(state: UsageLimitData.TrackerState, now: Long, force: Boolean = false) {
+        if (!force && now - lastPersistMs < PERSIST_INTERVAL_MS) return
+        UsageLimitData.saveTrackerState(state)
+        lastPersistMs = now
     }
 
     private fun startOfDay(now: Long): Long = Calendar.getInstance().run {
