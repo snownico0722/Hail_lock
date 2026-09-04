@@ -1,6 +1,7 @@
 package com.aistra.hail.ui.usage
 
 import android.Manifest
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -27,7 +28,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +51,8 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
+import androidx.preference.PreferenceManager
 import com.aistra.hail.BuildConfig
 import com.aistra.hail.R
 import com.aistra.hail.app.UsageLimitController
@@ -80,6 +83,7 @@ class UsageLimitsFragment : MainFragment() {
     private fun UsageLimitsScreen() {
         var refreshVersion by remember { mutableIntStateOf(0) }
         var enabled by remember { mutableStateOf(UsageLimitData.enabled) }
+        var backgroundHide by remember { mutableStateOf(UsageLimitData.backgroundHide) }
         var limits by remember(refreshVersion) { mutableStateOf(UsageLimitData.appLimits()) }
         var totalLimit by remember(refreshVersion) { mutableIntStateOf(UsageLimitData.totalLimitMinutes) }
         var snapshot by remember(refreshVersion) {
@@ -158,6 +162,27 @@ class UsageLimitsFragment : MainFragment() {
                                     ) {
                                         requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     }
+                                }
+                            )
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.usage_limit_background_hide)) },
+                        supportingContent = { Text(stringResource(R.string.usage_limit_background_hide_summary)) },
+                        leadingContent = { Icon(Icons.Outlined.VisibilityOff, contentDescription = null) },
+                        trailingContent = {
+                            Switch(
+                                checked = backgroundHide,
+                                onCheckedChange = { value ->
+                                    PreferenceManager.getDefaultSharedPreferences(requireContext()).edit {
+                                        putBoolean(UsageLimitData.BACKGROUND_HIDE, value)
+                                    }
+                                    backgroundHide = value
                                 }
                             )
                         }
@@ -346,7 +371,7 @@ class UsageLimitsFragment : MainFragment() {
             .setNegativeButton(android.R.string.cancel, null)
             .create()
         dialog.setOnShowListener {
-            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 val value = input.text?.toString()?.toIntOrNull()
                 val valid = if (allowZero) value != null && value >= 0 else value != null && value > 0
                 if (!valid) {
