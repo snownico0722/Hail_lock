@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,8 +76,15 @@ class UsageLimitsFragment : MainFragment() {
             usageAccessRefresh++
         }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        ComposeView(requireContext()).apply {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        if (!UsageLimitController.isSupported) {
+            return TextView(requireContext()).apply {
+                setText(R.string.usage_limit_android_version_required)
+                textSize = 16f
+                setPadding(48, 48, 48, 48)
+            }
+        }
+        return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 AppTheme {
@@ -84,6 +92,7 @@ class UsageLimitsFragment : MainFragment() {
                 }
             }
         }
+    }
 
     @Composable
     private fun UsageLimitsScreen() {
