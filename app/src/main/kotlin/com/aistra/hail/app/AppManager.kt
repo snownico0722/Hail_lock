@@ -28,6 +28,7 @@ object AppManager {
 
     fun setListFrozen(frozen: Boolean, vararg appInfo: AppInfo): String? {
         val excludeMe = appInfo.filter { it.packageName != BuildConfig.APPLICATION_ID }
+        if (frozen) UsageLimitController.promoteExternalFreeze(excludeMe.map { it.packageName })
         var i = 0
         var denied = false
         var name = String()
@@ -50,8 +51,10 @@ object AppManager {
         return if (denied && i == 0) null else if (i == 1) name else i.toString()
     }
 
-    fun setAppFrozen(packageName: String, frozen: Boolean): Boolean =
-        packageName != BuildConfig.APPLICATION_ID && when (HailData.workingMode) {
+    fun setAppFrozen(packageName: String, frozen: Boolean): Boolean {
+        if (packageName == BuildConfig.APPLICATION_ID) return false
+        if (frozen) UsageLimitController.promoteExternalFreeze(packageName)
+        return when (HailData.workingMode) {
             HailData.MODE_OWNER_HIDE -> HPolicy.setAppHidden(packageName, frozen)
             HailData.MODE_OWNER_SUSPEND -> HPolicy.setAppSuspended(packageName, frozen)
             HailData.MODE_DHIZUKU_HIDE -> HDhizuku.setAppHidden(packageName, frozen)
@@ -70,6 +73,7 @@ object AppManager {
             HailData.MODE_PRIVAPP_DISABLE -> HPackages.setAppDisabled(packageName, frozen)
             else -> false
         }
+    }
 
     fun uninstallApp(packageName: String): Boolean {
         when {
