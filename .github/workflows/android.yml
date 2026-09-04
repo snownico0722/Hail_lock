@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - feature/usage-limits
     paths-ignore:
       - '**.md'
       - 'fastlane/**'
