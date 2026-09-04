@@ -1,6 +1,7 @@
 package com.aistra.hail.app
 
 import android.content.Context
+import android.os.Build
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -16,8 +17,12 @@ object UsageLimitController {
     private const val FIVE_MINUTES_MS = 5L * 60L * 1000L
     private const val ONE_MINUTE_MS = 60L * 1000L
 
+    val isSupported: Boolean
+        get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+
+    @Synchronized
     fun tick(context: Context) {
-        if (!HPolicy.isDeviceOwnerActive) return
+        if (!isSupported || !HPolicy.isDeviceOwnerActive) return
 
         val dayStart = startOfDay(System.currentTimeMillis())
         resetForNewDay(dayStart)
@@ -29,8 +34,9 @@ object UsageLimitController {
      * This is the single source of truth for enforcement after timer ticks, setting
      * changes, permission changes, and manual unsuspension attempts.
      */
+    @Synchronized
     fun reconcile(context: Context, notify: Boolean = false) {
-        if (!HPolicy.isDeviceOwnerActive) return
+        if (!isSupported || !HPolicy.isDeviceOwnerActive) return
 
         val limits = UsageLimitData.appLimits()
         if (!UsageLimitData.enabled || limits.isEmpty()) {
@@ -71,11 +77,13 @@ object UsageLimitController {
         }
     }
 
+    @Synchronized
     fun releaseAllEnforced() {
         if (!HPolicy.isDeviceOwnerActive) return
         UsageLimitData.enforcedPackages().toList().forEach(::releaseOwnedPackage)
     }
 
+    @Synchronized
     fun removePackage(packageName: String) {
         UsageLimitData.removeAppLimit(packageName)
         UsageLimitTracker.invalidate()
@@ -84,6 +92,21 @@ object UsageLimitController {
         // regular service tick.
         releaseOwnedPackage(packageName)
     }
+
+    /**
+     * An ordinary Hail freeze request in a suspend-based working mode takes ownership
+     * away from the daily limiter. This prevents the next daily reset from undoing a
+     * later manual/automatic freeze that happened while the app was already suspended.
+     */
+    @Synchronized
+    fun promoteExternalFreeze(packageNames: Iterable<String>) {
+        if (!HailData.workingMode.endsWith(HailData.SUSPEND)) return
+        val owned = UsageLimitData.enforcedPackages()
+        packageNames.filter { it in owned }.forEach(UsageLimitData::unmarkEnforced)
+    }
+
+    @Synchronized
+    fun promoteExternalFreeze(packageName: String) = promoteExternalFreeze(listOf(packageName))
 
     private fun resetForNewDay(dayStartMs: Long) {
         val day = dayStartMs.toString()
