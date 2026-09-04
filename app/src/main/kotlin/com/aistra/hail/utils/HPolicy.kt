@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Intent
+import android.os.Build
 import android.os.UserManager
 import androidx.core.content.getSystemService
 import com.aistra.hail.HailApp.Companion.app
@@ -63,6 +64,18 @@ object HPolicy {
         if (!isDeviceOwnerActive) return
         dpm.addUserRestriction(admin, UserManager.DISALLOW_ADD_USER)
         if (HTarget.P) dpm.addUserRestriction(admin, UserManager.DISALLOW_USER_SWITCH)
+    }
+
+    /**
+     * Prevent the user from force-stopping or clearing the device-owner app from
+     * Settings. ADB/root remain outside this policy by design.
+     */
+    fun enforceSelfProtection() {
+        if (!isDeviceOwnerActive || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        val packages = dpm.getUserControlDisabledPackages(admin).toMutableSet()
+        if (packages.add(app.packageName)) {
+            dpm.setUserControlDisabledPackages(admin, packages.toList())
+        }
     }
 
     /**
