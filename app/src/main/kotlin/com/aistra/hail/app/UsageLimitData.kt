@@ -7,6 +7,7 @@ import org.json.JSONObject
 
 object UsageLimitData {
     const val DEFAULT_APP_LIMIT_MINUTES = 30
+    const val BACKGROUND_HIDE = "background_hide"
 
     private const val KEY_ENABLED = "usage_limit_enabled"
     private const val KEY_APP_LIMITS = "usage_limit_app_limits"
@@ -28,6 +29,9 @@ object UsageLimitData {
     var enabled: Boolean
         get() = sp.getBoolean(KEY_ENABLED, false)
         set(value) = sp.edit { putBoolean(KEY_ENABLED, value) }
+
+    val backgroundHide: Boolean
+        get() = sp.getBoolean(BACKGROUND_HIDE, false)
 
     var totalLimitMinutes: Int
         get() = sp.getInt(KEY_TOTAL_LIMIT_MINUTES, 0)
