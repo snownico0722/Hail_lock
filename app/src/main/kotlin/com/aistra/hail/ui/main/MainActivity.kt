@@ -21,6 +21,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.aistra.hail.R
 import com.aistra.hail.app.AppLock
 import com.aistra.hail.app.HailData
+import com.aistra.hail.app.UsageLimitData
 import com.aistra.hail.databinding.ActivityMainBinding
 import com.aistra.hail.extensions.*
 import com.aistra.hail.ui.lock.AppLockDialogs
@@ -76,8 +77,9 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
 
     override fun onStop() {
         super.onStop()
-        if (AppLock.isEnabled && !isChangingConfigurations) {
-            binding.root.isVisible = false
+        if (isChangingConfigurations) return
+        if (AppLock.isEnabled) binding.root.isVisible = false
+        if (AppLock.isEnabled || UsageLimitData.backgroundHide) {
             finishAndRemoveTask()
         }
     }
@@ -92,7 +94,7 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
         val navController = navHostFragment.navController
         navController.addOnDestinationChangedListener(this@MainActivity)
         val appBarConfiguration = AppBarConfiguration.Builder(
-            R.id.nav_home, R.id.nav_apps, R.id.nav_settings, R.id.nav_about
+            R.id.nav_home, R.id.nav_apps, R.id.nav_usage_limits, R.id.nav_settings, R.id.nav_about
         ).build()
         setupActionBarWithNavController(navController, appBarConfiguration)
         bottomNav?.setupWithNavController(navController)
