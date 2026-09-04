@@ -21,6 +21,7 @@ class HailApp : Application() {
         super.onCreate()
         app = this
         HPolicy.enforceSingleUserMode()
+        HPolicy.enforceSelfProtection()
         // DirtyDataUpdater.update(app)
         if (!HTarget.S) setAppTheme(HailData.appTheme)
         if (HailData.workingMode.startsWith(HailData.DHIZUKU)) HDhizuku.init()

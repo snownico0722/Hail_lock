@@ -31,6 +31,7 @@ import com.aistra.hail.app.AppLock
 import com.aistra.hail.app.AppManager
 import com.aistra.hail.app.HailApi
 import com.aistra.hail.app.HailData
+import com.aistra.hail.app.UsageLimitController
 import com.aistra.hail.ui.theme.AppTheme
 import com.aistra.hail.ui.lock.AppLockDialogs
 import com.aistra.hail.utils.HIsland
@@ -228,26 +229,30 @@ class ApiActivity : ComponentActivity() {
         } ?: throw ActivityNotFoundException(getString(R.string.activity_not_found))
     }
 
-    private fun setAppFrozen(pkg: String, frozen: Boolean) = when {
-        frozen && !HailData.isChecked(pkg) -> throw SecurityException("Package not checked")
-        AppManager.isAppFrozen(pkg) != frozen && !AppManager.setAppFrozen(
-            pkg, frozen
-        ) -> throw IllegalStateException(getString(R.string.permission_denied))
+    private fun setAppFrozen(pkg: String, frozen: Boolean) {
+        if (frozen && !HailData.isChecked(pkg)) throw SecurityException("Package not checked")
+        if (frozen) UsageLimitController.promoteExternalFreeze(pkg)
+        when {
+            AppManager.isAppFrozen(pkg) != frozen && !AppManager.setAppFrozen(
+                pkg, frozen
+            ) -> throw IllegalStateException(getString(R.string.permission_denied))
 
-        else -> {
-            HUI.showToast(
-                if (frozen) R.string.msg_freeze else R.string.msg_unfreeze,
-                HPackages.getApplicationInfoOrNull(pkg)?.loadLabel(packageManager) ?: pkg
-            )
-            app.setAutoFreezeService()
+            else -> {
+                HUI.showToast(
+                    if (frozen) R.string.msg_freeze else R.string.msg_unfreeze,
+                    HPackages.getApplicationInfoOrNull(pkg)?.loadLabel(packageManager) ?: pkg
+                )
+                app.setAutoFreezeService()
+            }
         }
     }
 
     private fun setListFrozen(
         frozen: Boolean, list: List<AppInfo> = HailData.checkedList, skipWhitelisted: Boolean = false
     ) {
-        val filtered =
-            list.filter { AppManager.isAppFrozen(it.packageName) != frozen && !(skipWhitelisted && it.whitelisted) }
+        val candidates = list.filterNot { skipWhitelisted && it.whitelisted }
+        if (frozen) UsageLimitController.promoteExternalFreeze(candidates.map { it.packageName })
+        val filtered = candidates.filter { AppManager.isAppFrozen(it.packageName) != frozen }
         when (val result = AppManager.setListFrozen(frozen, *filtered.toTypedArray())) {
             null -> throw IllegalStateException(getString(R.string.permission_denied))
             else -> {

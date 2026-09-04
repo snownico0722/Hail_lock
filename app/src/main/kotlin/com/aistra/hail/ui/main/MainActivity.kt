@@ -1,5 +1,6 @@
 package com.aistra.hail.ui.main
 
+import android.app.ActivityManager
 import android.os.Bundle
 import android.view.Menu
 import android.view.WindowManager
@@ -21,6 +22,8 @@ import androidx.navigation.ui.setupWithNavController
 import com.aistra.hail.R
 import com.aistra.hail.app.AppLock
 import com.aistra.hail.app.HailData
+import com.aistra.hail.app.UsageLimitController
+import com.aistra.hail.app.UsageLimitData
 import com.aistra.hail.databinding.ActivityMainBinding
 import com.aistra.hail.extensions.*
 import com.aistra.hail.ui.lock.AppLockDialogs
@@ -74,12 +77,26 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
         biometricPrompt.authenticate(promptInfo)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (UsageLimitData.backgroundHide) setTaskExcludedFromRecents(false)
+    }
+
     override fun onStop() {
         super.onStop()
-        if (AppLock.isEnabled && !isChangingConfigurations) {
+        if (isChangingConfigurations) return
+        if (AppLock.isEnabled) {
             binding.root.isVisible = false
             finishAndRemoveTask()
+        } else if (UsageLimitData.backgroundHide) {
+            setTaskExcludedFromRecents(true)
         }
+    }
+
+    private fun setTaskExcludedFromRecents(excluded: Boolean) {
+        val manager = getSystemService(ActivityManager::class.java) ?: return
+        @Suppress("DEPRECATION")
+        manager.appTasks.firstOrNull { it.taskInfo.id == taskId }?.setExcludeFromRecents(excluded)
     }
 
     private fun initView() = ActivityMainBinding.inflate(layoutInflater).apply {
@@ -92,7 +109,7 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
         val navController = navHostFragment.navController
         navController.addOnDestinationChangedListener(this@MainActivity)
         val appBarConfiguration = AppBarConfiguration.Builder(
-            R.id.nav_home, R.id.nav_apps, R.id.nav_settings, R.id.nav_about
+            R.id.nav_home, R.id.nav_apps, R.id.nav_usage_limits, R.id.nav_settings, R.id.nav_about
         ).build()
         setupActionBarWithNavController(navController, appBarConfiguration)
         bottomNav?.setupWithNavController(navController)
@@ -116,7 +133,7 @@ class MainActivity : AppCompatActivity(), NavController.OnDestinationChangedList
     fun ownerRemoveDialog() {
         MaterialAlertDialogBuilder(this).setTitle(R.string.title_remove_owner).setMessage(R.string.msg_remove_owner)
             .setPositiveButton(R.string.action_continue) { _, _ ->
-                HPolicy.setOrganizationName()
+                UsageLimitController.releaseAllEnforced()
                 HPolicy.removeDeviceOwner()
             }.setNegativeButton(android.R.string.cancel, null).show()
     }

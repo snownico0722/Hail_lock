@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Intent
+import android.os.Build
 import android.os.UserManager
 import androidx.core.content.getSystemService
 import com.aistra.hail.HailApp.Companion.app
@@ -66,6 +67,18 @@ object HPolicy {
     }
 
     /**
+     * Prevent the user from force-stopping or clearing the device-owner app from
+     * Settings. ADB/root remain outside this policy by design.
+     */
+    fun enforceSelfProtection() {
+        if (!isDeviceOwnerActive || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        val packages = dpm.getUserControlDisabledPackages(admin).toMutableSet()
+        if (packages.add(app.packageName)) {
+            dpm.setUserControlDisabledPackages(admin, packages.toList())
+        }
+    }
+
+    /**
      * Block the user-wide package installation path. Android applies this policy
      * to both new installs and package replacement/update installs.
      */
@@ -80,6 +93,27 @@ object HPolicy {
         if (isDeviceOwnerActive && HTarget.O) dpm.setOrganizationName(admin, name)
     }
 
+    private fun clearForkOwnerPolicies() {
+        if (!isDeviceOwnerActive) return
+
+        // Explicitly unwind policies added by Hail_lock before dropping owner status.
+        // clearDeviceOwnerApp() only promises best-effort cleanup on modern Android.
+        runCatching { dpm.clearUserRestriction(admin, UserManager.DISALLOW_INSTALL_APPS) }
+        runCatching { dpm.clearUserRestriction(admin, UserManager.DISALLOW_ADD_USER) }
+        if (HTarget.P) {
+            runCatching { dpm.clearUserRestriction(admin, UserManager.DISALLOW_USER_SWITCH) }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            runCatching {
+                val packages = dpm.getUserControlDisabledPackages(admin).toMutableSet()
+                if (packages.remove(app.packageName)) {
+                    dpm.setUserControlDisabledPackages(admin, packages.toList())
+                }
+            }
+        }
+        if (HTarget.O) runCatching { dpm.setOrganizationName(admin, null) }
+    }
+
     fun removeActiveAdmin() {
         if (isAdminActive) dpm.removeActiveAdmin(admin)
     }
@@ -91,6 +125,8 @@ object HPolicy {
 
     @Suppress("DEPRECATION")
     fun removeDeviceOwner() {
-        if (isDeviceOwnerActive) dpm.clearDeviceOwnerApp(app.packageName)
+        if (!isDeviceOwnerActive) return
+        clearForkOwnerPolicies()
+        dpm.clearDeviceOwnerApp(app.packageName)
     }
 }

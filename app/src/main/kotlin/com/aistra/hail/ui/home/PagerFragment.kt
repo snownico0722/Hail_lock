@@ -36,6 +36,7 @@ import com.aistra.hail.app.AppManager
 import com.aistra.hail.app.HailApi
 import com.aistra.hail.app.HailApi.addTag
 import com.aistra.hail.app.HailData
+import com.aistra.hail.app.UsageLimitController
 import com.aistra.hail.databinding.DialogInputBinding
 import com.aistra.hail.databinding.FragmentPagerBinding
 import com.aistra.hail.extensions.*
@@ -438,6 +439,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
                 }
             }
         }
+        if (frozen) UsageLimitController.promoteExternalFreeze(list.map { it.packageName })
         val filtered = list.filter { AppManager.isAppFrozen(it.packageName) != frozen }
         when (val result = AppManager.setListFrozen(frozen, *filtered.toTypedArray())) {
             null -> HUI.showToast(R.string.permission_denied)
