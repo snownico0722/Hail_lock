@@ -4,7 +4,14 @@ on:
   push:
     branches:
       - master
-      - feature/usage-limits
+    paths-ignore:
+      - '**.md'
+      - 'fastlane/**'
+      - '.github/**'
+      - '!.github/workflows/android.yml'
+  pull_request:
+    branches:
+      - master
     paths-ignore:
       - '**.md'
       - 'fastlane/**'
