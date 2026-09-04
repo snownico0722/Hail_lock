@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_usage_limits">使用限额</string>
+    <string name="usage_limit_enable">启用使用限额</string>
+    <string name="usage_limit_enable_summary">统计应用前台使用时间，达到每日限额后自动冻结。</string>
+    <string name="usage_limit_owner_required">需要设备所有者权限</string>
+    <string name="usage_limit_owner_required_summary">自动冻结需要 Hail 作为设备所有者运行。</string>
+    <string name="usage_limit_usage_access_required">需要使用情况访问权限</string>
+    <string name="usage_limit_usage_access_summary">授予使用情况访问权限后，Hail 才能统计应用前台使用时间。</string>
+    <string name="usage_limit_grant_access">授予权限</string>
+    <string name="usage_limit_total">每日总限额</string>
+    <string name="usage_limit_total_summary">总限额由本页所有受限应用共同消耗；总额度耗尽后，冻结全部受限应用。每个应用自己的单独限额仍然同时生效。</string>
+    <string name="usage_limit_apps">受限应用</string>
+    <string name="usage_limit_add_app">添加应用</string>
+    <string name="usage_limit_remove_app">移除应用</string>
+    <string name="usage_limit_no_apps">还没有添加任何应用。</string>
+    <string name="usage_limit_not_set">未设置</string>
+    <string name="usage_limit_minutes_progress">%1$d / %2$d 分钟</string>
+    <string name="usage_limit_minutes_input">输入该应用每天可使用的分钟数。</string>
+    <string name="usage_limit_minutes_input_zero">输入每日总限额分钟数；输入 0 表示不设置总限额。</string>
+    <string name="usage_limit_minutes_invalid">请输入有效的分钟数。</string>
+    <string name="usage_limit_warning_app">%1$s 今日还剩 %2$d 分钟。</string>
+    <string name="usage_limit_warning_total">今日总额度还剩 %1$d 分钟。</string>
+    <string name="usage_limit_reached_app">%1$s 已达到今日限额，已自动冻结。</string>
+    <string name="usage_limit_reached_total">今日总额度已用完，受限应用已自动冻结。</string>
+    <string name="usage_limit_background_hide">后台隐藏</string>
+    <string name="usage_limit_background_hide_summary">离开 Hail 后从最近任务中移除，但设备所有者计时仍继续在后台运行。</string>
+</resources>
