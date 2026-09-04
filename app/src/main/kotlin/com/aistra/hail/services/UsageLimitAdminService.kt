@@ -18,7 +18,7 @@ class UsageLimitAdminService : DeviceAdminService() {
         scope.launch {
             while (isActive) {
                 runCatching { UsageLimitController.tick(applicationContext) }
-                delay(5_000L)
+                delay(POLL_INTERVAL_MS)
             }
         }
     }
@@ -26,5 +26,9 @@ class UsageLimitAdminService : DeviceAdminService() {
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
+    }
+
+    companion object {
+        private const val POLL_INTERVAL_MS = 5_000L
     }
 }
