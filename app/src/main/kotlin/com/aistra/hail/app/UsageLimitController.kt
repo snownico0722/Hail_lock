@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.aistra.hail.BuildConfig
 import com.aistra.hail.R
 import com.aistra.hail.utils.HPackages
 import com.aistra.hail.utils.HPolicy
@@ -20,45 +21,65 @@ object UsageLimitController {
 
         val dayStart = startOfDay(System.currentTimeMillis())
         resetForNewDay(dayStart)
-        if (!UsageLimitData.enabled || !UsageLimitTracker.hasUsageAccess(context)) return
+        reconcile(context, notify = true)
+    }
+
+    /**
+     * Reconcile the real package suspension state with the current usage-limit policy.
+     * This is the single source of truth for enforcement after timer ticks, setting
+     * changes, permission changes, and manual unsuspension attempts.
+     */
+    fun reconcile(context: Context, notify: Boolean = false) {
+        if (!HPolicy.isDeviceOwnerActive) return
 
         val limits = UsageLimitData.appLimits()
-        if (limits.isEmpty()) return
-        val snapshot = UsageLimitTracker.snapshot()
-
-        val totalLimitMs = UsageLimitData.totalLimitMinutes.takeIf { it > 0 }?.times(60_000L)
-        if (totalLimitMs != null && snapshot.totalMs >= totalLimitMs) {
-            notifyLimitReached(context, null, true)
-            limits.keys.forEach(::enforcePackage)
+        if (!UsageLimitData.enabled || limits.isEmpty()) {
+            reconcileSuspensions(emptySet())
             return
         }
 
-        limits.forEach { (packageName, limitMinutes) ->
-            val usedMs = snapshot.perAppMs[packageName] ?: 0L
-            if (usedMs >= limitMinutes * 60_000L) {
-                notifyLimitReached(context, packageName, false)
-                enforcePackage(packageName)
+        // Fail closed: if usage access is revoked while limits are enabled, keep all
+        // limited apps suspended until access is restored and their real usage can be
+        // evaluated again.
+        if (!UsageLimitTracker.hasUsageAccess(context)) {
+            reconcileSuspensions(limits.keys)
+            return
+        }
+
+        val snapshot = UsageLimitTracker.snapshot()
+        val totalLimitMs = UsageLimitData.totalLimitMinutes.takeIf { it > 0 }?.times(60_000L)
+        val desiredSuspensions = linkedSetOf<String>()
+
+        val totalReached = totalLimitMs != null && snapshot.totalMs >= totalLimitMs
+        if (totalReached) {
+            desiredSuspensions.addAll(limits.keys)
+            if (notify) notifyLimitReached(context, null, true)
+        } else {
+            limits.forEach { (packageName, limitMinutes) ->
+                val usedMs = snapshot.perAppMs[packageName] ?: 0L
+                if (usedMs >= limitMinutes * 60_000L) {
+                    desiredSuspensions += packageName
+                    if (notify) notifyLimitReached(context, packageName, false)
+                }
             }
         }
 
-        maybeWarnForeground(context, snapshot, limits, totalLimitMs)
+        reconcileSuspensions(desiredSuspensions)
+
+        if (notify && !totalReached) {
+            maybeWarnForeground(context, snapshot, limits, totalLimitMs)
+        }
     }
 
     fun releaseAllEnforced() {
         if (!HPolicy.isDeviceOwnerActive) return
-        UsageLimitData.enforcedPackages().forEach { packageName ->
-            runCatching { HPolicy.setAppSuspended(packageName, false) }
-        }
-        UsageLimitData.clearEnforcedPackages()
+        UsageLimitData.enforcedPackages().toList().forEach(::releaseOwnedPackage)
     }
 
-    fun removePackage(packageName: String) {
+    fun removePackage(context: Context, packageName: String) {
         UsageLimitData.removeAppLimit(packageName)
         UsageLimitTracker.invalidate()
-        if (packageName in UsageLimitData.enforcedPackages() && HPolicy.isDeviceOwnerActive) {
-            runCatching { HPolicy.setAppSuspended(packageName, false) }
-            UsageLimitData.unmarkEnforced(packageName)
-        }
+        reconcile(context)
     }
 
     private fun resetForNewDay(dayStartMs: Long) {
@@ -70,12 +91,46 @@ object UsageLimitController {
         UsageLimitTracker.invalidate()
     }
 
+    private fun reconcileSuspensions(desiredSuspensions: Set<String>) {
+        val owned = UsageLimitData.enforcedPackages()
+
+        // First release limiter-owned suspensions that are no longer required by the
+        // current policy. Never touch suspensions that the limiter does not own.
+        (owned - desiredSuspensions).forEach(::releaseOwnedPackage)
+
+        // Then ensure every package that should be blocked is actually suspended.
+        // If the user manually unsuspended a limiter-owned package, this re-applies it.
+        desiredSuspensions.forEach(::enforcePackage)
+    }
+
+    private fun releaseOwnedPackage(packageName: String) {
+        if (packageName !in UsageLimitData.enforcedPackages()) return
+        if (!HPackages.isAppSuspended(packageName)) {
+            UsageLimitData.unmarkEnforced(packageName)
+            return
+        }
+        if (runCatching { HPolicy.setAppSuspended(packageName, false) }.getOrDefault(false)) {
+            UsageLimitData.unmarkEnforced(packageName)
+        }
+    }
+
     private fun enforcePackage(packageName: String) {
-        if (packageName == com.aistra.hail.BuildConfig.APPLICATION_ID) return
-        if (packageName in UsageLimitData.enforcedPackages()) return
+        if (packageName == BuildConfig.APPLICATION_ID) return
+
+        val owned = packageName in UsageLimitData.enforcedPackages()
+        val actuallySuspended = HPackages.isAppSuspended(packageName)
+
+        if (owned) {
+            if (actuallySuspended) return
+            // The limiter owns this suspension, so a manual unsuspend must not turn
+            // into a bypass. Re-apply the suspension without changing ownership.
+            runCatching { HPolicy.setAppSuspended(packageName, true) }
+            return
+        }
+
         // Do not claim a suspension that existed before the usage limiter; otherwise
-        // the next daily reset could accidentally undo a manual freeze.
-        if (HPackages.isAppSuspended(packageName)) return
+        // a later reconcile or daily reset could accidentally undo a manual freeze.
+        if (actuallySuspended) return
         if (runCatching { HPolicy.setAppSuspended(packageName, true) }.getOrDefault(false)) {
             UsageLimitData.markEnforced(packageName)
         }
