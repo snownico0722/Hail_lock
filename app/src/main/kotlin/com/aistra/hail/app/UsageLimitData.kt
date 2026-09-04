@@ -35,7 +35,10 @@ object UsageLimitData {
 
     var totalLimitMinutes: Int
         get() = sp.getInt(KEY_TOTAL_LIMIT_MINUTES, 0)
-        set(value) = sp.edit { putInt(KEY_TOTAL_LIMIT_MINUTES, value.coerceAtLeast(0)) }
+        set(value) {
+            sp.edit { putInt(KEY_TOTAL_LIMIT_MINUTES, value.coerceAtLeast(0)) }
+            clearWarningMarkers()
+        }
 
     fun appLimits(): Map<String, Int> {
         val objectValue = runCatching { JSONObject(sp.getString(KEY_APP_LIMITS, "{}") ?: "{}") }
@@ -55,6 +58,7 @@ object UsageLimitData {
             put(packageName, minutes)
         }
         sp.edit { putString(KEY_APP_LIMITS, objectValue.toString()) }
+        clearWarningMarkers()
     }
 
     fun removeAppLimit(packageName: String) {
@@ -62,6 +66,7 @@ object UsageLimitData {
             appLimits().filterKeys { it != packageName }.forEach { (pkg, limit) -> put(pkg, limit) }
         }
         sp.edit { putString(KEY_APP_LIMITS, objectValue.toString()) }
+        clearWarningMarkers()
     }
 
     fun packageSignature(): String = appLimits().keys.sorted().joinToString("\n")
@@ -93,6 +98,8 @@ object UsageLimitData {
             remove(KEY_WARNING_MARKERS)
         }
     }
+
+    fun clearWarningMarkers() = sp.edit { remove(KEY_WARNING_MARKERS) }
 
     fun markWarningOnce(marker: String): Boolean {
         val markers = sp.getStringSet(KEY_WARNING_MARKERS, emptySet())?.toMutableSet() ?: mutableSetOf()
