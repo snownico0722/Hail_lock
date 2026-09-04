@@ -230,9 +230,9 @@ class ApiActivity : ComponentActivity() {
     }
 
     private fun setAppFrozen(pkg: String, frozen: Boolean) {
+        if (frozen && !HailData.isChecked(pkg)) throw SecurityException("Package not checked")
         if (frozen) UsageLimitController.promoteExternalFreeze(pkg)
         when {
-            frozen && !HailData.isChecked(pkg) -> throw SecurityException("Package not checked")
             AppManager.isAppFrozen(pkg) != frozen && !AppManager.setAppFrozen(
                 pkg, frozen
             ) -> throw IllegalStateException(getString(R.string.permission_denied))
