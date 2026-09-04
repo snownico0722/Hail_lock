@@ -3,6 +3,7 @@
     <string name="title_usage_limits">使用限额</string>
     <string name="usage_limit_enable">启用使用限额</string>
     <string name="usage_limit_enable_summary">统计应用前台使用时间，达到每日限额后自动冻结。</string>
+    <string name="usage_limit_android_version_required">使用限额功能需要 Android 8.0 或更高版本。</string>
     <string name="usage_limit_owner_required">需要设备所有者权限</string>
     <string name="usage_limit_owner_required_summary">自动冻结需要 Hail 作为设备所有者运行。</string>
     <string name="usage_limit_usage_access_required">需要使用情况访问权限</string>
