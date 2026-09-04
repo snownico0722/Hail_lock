@@ -66,8 +66,14 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.delay
 
 class UsageLimitsFragment : MainFragment() {
+    private var usageAccessRefresh by mutableIntStateOf(0)
+
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    private val requestUsageAccess =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            usageAccessRefresh++
+        }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
         ComposeView(requireContext()).apply {
@@ -81,21 +87,24 @@ class UsageLimitsFragment : MainFragment() {
 
     @Composable
     private fun UsageLimitsScreen() {
+        val usageAccessVersion = usageAccessRefresh
         var refreshVersion by remember { mutableIntStateOf(0) }
         var enabled by remember { mutableStateOf(UsageLimitData.enabled) }
         var backgroundHide by remember { mutableStateOf(UsageLimitData.backgroundHide) }
         var limits by remember(refreshVersion) { mutableStateOf(UsageLimitData.appLimits()) }
         var totalLimit by remember(refreshVersion) { mutableIntStateOf(UsageLimitData.totalLimitMinutes) }
-        var snapshot by remember(refreshVersion) {
+        val hasUsageAccess = remember(usageAccessVersion) {
+            UsageLimitTracker.hasUsageAccess(requireContext())
+        }
+        var snapshot by remember(refreshVersion, usageAccessVersion) {
             mutableStateOf(
-                if (UsageLimitTracker.hasUsageAccess(requireContext())) UsageLimitTracker.snapshot()
+                if (hasUsageAccess) UsageLimitTracker.snapshot()
                 else UsageLimitTracker.Snapshot(0L, emptyMap(), 0L, null)
             )
         }
-        val hasUsageAccess = UsageLimitTracker.hasUsageAccess(requireContext())
         val isOwner = HPolicy.isDeviceOwnerActive
 
-        LaunchedEffect(refreshVersion, hasUsageAccess) {
+        LaunchedEffect(refreshVersion, hasUsageAccess, usageAccessVersion) {
             while (true) {
                 if (hasUsageAccess && limits.isNotEmpty()) {
                     snapshot = UsageLimitTracker.snapshot()
@@ -128,7 +137,7 @@ class UsageLimitsFragment : MainFragment() {
                             Text(stringResource(R.string.usage_limit_usage_access_required), style = MaterialTheme.typography.titleMedium)
                             Text(stringResource(R.string.usage_limit_usage_access_summary))
                             TextButton(onClick = {
-                                startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                requestUsageAccess.launch(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                             }) {
                                 Text(stringResource(R.string.usage_limit_grant_access))
                             }
@@ -149,7 +158,7 @@ class UsageLimitsFragment : MainFragment() {
                                 enabled = isOwner,
                                 onCheckedChange = { value ->
                                     if (value && !UsageLimitTracker.hasUsageAccess(requireContext())) {
-                                        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                        requestUsageAccess.launch(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                                         return@Switch
                                     }
                                     UsageLimitData.enabled = value
